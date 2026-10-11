@@ -1,0 +1,62 @@
+# --------------------------------------------------
+# MACHINE LEARNING MINI PROJECT
+# Early Breast Cancer Detection using Random Forest
+# --------------------------------------------------
+
+# 1. Import required libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (accuracy_score, precision_score, recall_score,
+                             f1_score, confusion_matrix)
+
+# 2. Load the dataset
+raw = load_breast_cancer()
+data = pd.DataFrame(raw.data, columns=raw.feature_names)
+data["target"] = raw.target          # 0 = Malignant, 1 = Benign
+print("Dataset shape:", data.shape)
+print(data["target"].value_counts())
+
+# 3. Separate features and target
+X = data.drop("target", axis=1)
+y = data["target"]
+
+# 4. Split the dataset (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# 5. Create and train the Random Forest model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 6. Make predictions
+y_pred = model.predict(X_test)
+
+# 7. Evaluate the model
+acc = accuracy_score(y_test, y_pred)
+print("Accuracy :", round(acc * 100, 2), "%")
+print("Precision:", round(precision_score(y_test, y_pred), 4))
+print("Recall   :", round(recall_score(y_test, y_pred), 4))
+print("F1-Score :", round(f1_score(y_test, y_pred), 4))
+cm = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:\n", cm)
+
+# 8. Graphs
+fig, ax = plt.subplots(1, 3, figsize=(16, 4.5))
+sns.countplot(x=data["target"].map({0: "Malignant", 1: "Benign"}), ax=ax[0],
+              palette=["#d9534f", "#5cb85c"])
+ax[0].set_title("Figure 1: Class Distribution")
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax[1],
+            xticklabels=["Malignant", "Benign"], yticklabels=["Malignant", "Benign"])
+ax[1].set_title("Figure 2: Confusion Matrix")
+ax[1].set_xlabel("Predicted"); ax[1].set_ylabel("Actual")
+imp = pd.Series(model.feature_importances_, index=X.columns).nlargest(8)
+imp.sort_values().plot(kind="barh", ax=ax[2], color="#337ab7")
+ax[2].set_title("Figure 3: Top 8 Feature Importance")
+plt.tight_layout()
+plt.savefig("results.png", dpi=150)
+plt.show()
